@@ -12,6 +12,7 @@ import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -32,7 +33,7 @@ public class EpidemicSimulation extends Application {
     @Override
     public void start(Stage primaryStage) {
         Canvas canvas = new Canvas(WIDTH, HEIGHT);
-        mapImage = new Image(getClass().getResource("/com/epidemicsim/phmap.png").toExternalForm());
+        mapImage = new Image(getClass().getResource("/com/epidemicsim/phmap3.png").toExternalForm());
         GraphicsContext gc = canvas.getGraphicsContext2D();
         Button startButton = new Button("Start Simulation");
         startButton.setOnAction(e -> startSimulation(gc));
@@ -47,13 +48,27 @@ public class EpidemicSimulation extends Application {
 
     private void initializePeople() {
         for (int i = 0; i < PEOPLE_COUNT; i++) {
-            int x = random.nextInt(WIDTH);
-            int y = (i < PEOPLE_COUNT / 3) ? random.nextInt(HEIGHT / 3) :
-                    (i < 2 * PEOPLE_COUNT / 3) ? random.nextInt(HEIGHT / 3) + HEIGHT / 3 :
-                            random.nextInt(HEIGHT / 3) + 2 * HEIGHT / 3;
+            int x, y;
+            double region = random.nextDouble();
+            if (region < 0.4) { // Luzon
+                x = random.nextInt(((WIDTH / 3) + 20), (WIDTH * 2 / 3 - 50));
+                y = random.nextInt(20,(HEIGHT / 3) + 100);
+            } else if (region < 0.7) { // Visayas
+                x = random.nextInt(((WIDTH / 3) + 100), ((WIDTH * 2 / 3)) + 30);
+                y = random.nextInt(((HEIGHT / 3) + 100), (2 * HEIGHT / 3));
+            } else { // Mindanao
+                x = random.nextInt(((WIDTH / 3) + 50), ((WIDTH * 2 / 3)) + 60);
+                y = random.nextInt((2 * HEIGHT / 3), HEIGHT - 50);
+            }
             people.add(new Person(x, y));
         }
         people.get(0).infected = true; //start infection
+    }
+
+    private void angledStrokeLine(GraphicsContext gc, double x, double y, double width, double angle) {
+        double x2 = x + width * Math.cos(Math.toRadians(angle));
+        double y2 = y + width * Math.sin(Math.toRadians(angle));
+        gc.strokeLine(x, y, x2, y2);
     }
 
     private void startSimulation(GraphicsContext gc) {
@@ -66,8 +81,8 @@ public class EpidemicSimulation extends Application {
         gc.clearRect(0, 0, WIDTH, HEIGHT);
         gc.drawImage(mapImage, 0, 0, WIDTH, HEIGHT);
         gc.setStroke(Color.BLACK);
-        gc.strokeLine(0, HEIGHT / 3, WIDTH, HEIGHT / 3);
-        gc.strokeLine(0, 2 * HEIGHT / 3, WIDTH, 2 * HEIGHT / 3);
+        angledStrokeLine(gc, 0, (HEIGHT / 3) + 300, WIDTH * 2, -28); // topline
+        angledStrokeLine(gc, 0, (2 * HEIGHT / 3) + 253, WIDTH * 2, -33); // bottomline
 
         for (Person p : people) {
             if (p.infected) {
@@ -75,7 +90,7 @@ public class EpidemicSimulation extends Application {
                 if (p.infectionTime > RECOVERY_TIME) p.infected = false; // Recover
             }
             spreadInfection(p);
-            gc.setFill(p.infected ? Color.RED : Color.GREEN);
+            gc.setFill(p.infected ? Color.RED : Color.BLUE);
             gc.fillOval(p.x, p.y, 5, 5);
         }
     }
